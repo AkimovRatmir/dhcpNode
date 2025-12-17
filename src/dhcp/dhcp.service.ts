@@ -16,12 +16,12 @@ export class DhcpService implements OnModuleInit {
     private socket = dgram.createSocket("udp4");
     private leaseStore = new LeaseStore();
 
-    private readonly serverId = "192.168.8.200";  // CHANGE to your Mac/Server IP for real network tests
+    private readonly serverId = "192.168.2.1";  // CHANGE to your Mac/Server IP for real network tests
     private readonly leaseTimeSec = 60;
 
     private readonly subnetMask = "255.255.255.0";
-    private readonly router = "192.168.8.1";
-    private readonly dns = ["8.8.8.8"];
+    private readonly router = "192.168.2.253";
+    private readonly dns = ["192.168.2.253"];
 
     private allocator = new IpAllocator(this.leaseStore, POOLS, RESERVATIONS);
 
