@@ -26,6 +26,10 @@ export function buildDhcpReply(params: {
   subnetMask?: string;  // option 1
   router?: string;      // option 3
   dns?: string[];       // option 6
+
+  pxeNextServer?: string;  // Option 66
+  pxeBootFile?: string;    // Option 67
+
 }): Buffer {
   const {
     request,
@@ -36,6 +40,8 @@ export function buildDhcpReply(params: {
     subnetMask,
     router,
     dns,
+    pxeNextServer,
+    pxeBootFile
   } = params;
 
   // --- Fixed header (236 bytes) ---
@@ -93,12 +99,24 @@ export function buildDhcpReply(params: {
   lt.writeUInt32BE(leaseTimeSec, 0);
   options.push(writeOption(51, lt));
 
+
   // Optional but very common: subnet mask, router, DNS
   if (subnetMask) options.push(writeOption(1, ipToBuf(subnetMask)));
   if (router) options.push(writeOption(3, ipToBuf(router)));
   if (dns?.length) {
     options.push(writeOption(6, Buffer.concat(dns.map(ipToBuf))));
   }
+
+  // 66: PXE next-server
+  if (pxeNextServer) {
+    options.push(writeOption(66, ipToBuf(pxeNextServer)));
+  }
+  
+  // 67: PXE boot filename
+  if (pxeBootFile) {
+    options.push(writeOption(67, Buffer.from(pxeBootFile, "ascii")));
+  }
+
 
   // 255: end
   options.push(Buffer.from([255]));

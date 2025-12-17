@@ -6,6 +6,8 @@ import { LeaseStore } from "./lease.store";
 import { buildDhcpReply } from "./dhcp.encoder";
 import { IpAllocator } from "./ip.allocator";
 import { POOLS, RESERVATIONS } from "./dhcp.runtime-config";
+import { PXE } from "./dhcp.runtime-config";
+
 
 
 @Injectable()
@@ -78,7 +80,12 @@ export class DhcpService implements OnModuleInit {
                         subnetMask: pool.subnetMask,
                         router: pool.router,
                         dns: pool.dns,
+
+                        // PXE OPTIONS
+                        pxeNextServer: PXE.nextServer,
+                        pxeBootFile: PXE.bootFile,
                     });
+
 
                     this.sendDhcpReply(offer, rinfo.address, packet.flags);
                     this.logger.log(`OFFER sent ${lease.mac} -> ${lease.ip}`);
@@ -106,7 +113,12 @@ export class DhcpService implements OnModuleInit {
                         subnetMask: pool.subnetMask,
                         router: pool.router,
                         dns: pool.dns,
+
+                        // PXE OPTIONS
+                        pxeNextServer: PXE.nextServer,
+                        pxeBootFile: PXE.bootFile,
                     });
+
 
                     this.sendDhcpReply(ack, rinfo.address, packet.flags);
                     this.logger.log(`ACK sent ${lease.mac} -> ${lease.ip}`);

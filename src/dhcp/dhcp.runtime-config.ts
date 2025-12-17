@@ -16,3 +16,8 @@ export const RESERVATIONS: ReservationConfig[] = [
   // Example:
   // { mac: "1a:b0:76:8f:e5:8a", ip: "192.168.8.110" },
 ];
+
+export const PXE = {
+  nextServer: "192.168.2.1",   // Option 66
+  bootFile: "ipxe.efi",        // Option 67
+};
