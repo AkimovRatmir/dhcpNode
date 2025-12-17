@@ -4,6 +4,8 @@ import { decodeDhcpPacket } from "./dhcp.decoder";
 import { DhcpMessageType } from "./dhcp.types";
 import { LeaseStore } from "./lease.store";
 import { buildDhcpReply } from "./dhcp.encoder";
+import { IpAllocator } from "./ip.allocator";
+import { POOLS, RESERVATIONS } from "./dhcp.runtime-config";
 
 
 @Injectable()
@@ -18,6 +20,8 @@ export class DhcpService implements OnModuleInit {
     private readonly subnetMask = "255.255.255.0";
     private readonly router = "192.168.8.1";
     private readonly dns = ["8.8.8.8"];
+
+    private allocator = new IpAllocator(this.leaseStore, POOLS, RESERVATIONS);
 
     private sendDhcpReply(payload: Buffer, rinfoAddress: string, flags: number) {
         const BROADCAST_FLAG = 0x8000;
@@ -56,15 +60,11 @@ export class DhcpService implements OnModuleInit {
                 const msgType = packet.options.get(53)?.readUInt8(0);
 
                 if (msgType === DhcpMessageType.Discover) {
-                    let lease = this.leaseStore.getByMac(packet.chaddr);
+                    const { ip, pool } = this.allocator.allocateForMac(packet.chaddr);
 
+                    let lease = this.leaseStore.getByMac(packet.chaddr);
                     if (!lease) {
-                        lease = this.leaseStore.offer(
-                            packet.chaddr,
-                            "192.168.8.100",
-                            packet.xid,
-                            this.leaseTimeSec,
-                        );
+                        lease = this.leaseStore.offer(packet.chaddr, ip, packet.xid, pool.leaseTimeSec);
                     } else {
                         lease.xid = packet.xid;
                     }
@@ -74,19 +74,26 @@ export class DhcpService implements OnModuleInit {
                         messageType: DhcpMessageType.Offer,
                         yiaddr: lease.ip,
                         serverId: this.serverId,
-                        leaseTimeSec: this.leaseTimeSec,
-                        subnetMask: this.subnetMask,
-                        router: this.router,
-                        dns: this.dns,
+                        leaseTimeSec: pool.leaseTimeSec,
+                        subnetMask: pool.subnetMask,
+                        router: pool.router,
+                        dns: pool.dns,
                     });
 
                     this.sendDhcpReply(offer, rinfo.address, packet.flags);
                     this.logger.log(`OFFER sent ${lease.mac} -> ${lease.ip}`);
                 }
 
+
                 if (msgType === DhcpMessageType.Request) {
                     const lease = this.leaseStore.getByMac(packet.chaddr);
                     if (!lease) return;
+
+                    // find pool for this lease (options)
+                    const pool = POOLS.find(p => {
+                        const { isIpInRange } = require("./ip.util"); // quick import avoidance
+                        return isIpInRange(lease.ip, p.startIp, p.endIp);
+                    }) ?? POOLS[0];
 
                     this.leaseStore.bind(packet.chaddr, packet.xid);
 
@@ -95,15 +102,16 @@ export class DhcpService implements OnModuleInit {
                         messageType: DhcpMessageType.Ack,
                         yiaddr: lease.ip,
                         serverId: this.serverId,
-                        leaseTimeSec: this.leaseTimeSec,
-                        subnetMask: this.subnetMask,
-                        router: this.router,
-                        dns: this.dns,
+                        leaseTimeSec: pool.leaseTimeSec,
+                        subnetMask: pool.subnetMask,
+                        router: pool.router,
+                        dns: pool.dns,
                     });
 
                     this.sendDhcpReply(ack, rinfo.address, packet.flags);
                     this.logger.log(`ACK sent ${lease.mac} -> ${lease.ip}`);
                 }
+
             } catch (e) {
                 this.logger.warn(`Invalid DHCP packet: ${e.message}`);
             }
