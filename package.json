@@ -2,7 +2,7 @@
   "name": "dhcp-server-nodejs",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "Ratmir Akimov",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

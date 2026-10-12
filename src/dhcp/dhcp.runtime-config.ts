@@ -14,7 +14,7 @@ export const POOLS: PoolConfig[] = [
 
 export const RESERVATIONS: ReservationConfig[] = [
   // Example:
-  // { mac: "1a:b0:76:8f:e5:8a", ip: "192.168.8.110" },
+  // { mac: "aa:bb:cc:dd:ee:ff", ip: "192.168.8.110" },
 ];
 
 export const PXE = {
